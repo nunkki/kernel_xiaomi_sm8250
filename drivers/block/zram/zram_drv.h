@@ -53,6 +53,7 @@ enum zram_pageflags {
 	ZRAM_HUGE,	/* Incompressible page */
 	ZRAM_COMPRESS_LOW, /*lower than aim compaction ratio */
 	ZRAM_IDLE,	/* not accessed page since last idle marking */
+	ZRAM_IMPORTANT,	/* the important page */
 
 	__NR_ZRAM_PAGEFLAGS,
 };
@@ -109,6 +110,8 @@ struct zram_stats {
 	atomic64_t notify_free;	/* no. of swap slot free notifications */
 	atomic64_t same_pages;		/* no. of same element filled pages */
 	atomic64_t huge_pages;		/* no. of huge pages */
+	atomic64_t important_pages;	/* no. of important pages */
+	atomic64_t important_compr_data_size;     /* important compressed size of pages stored */
 	atomic64_t pages_stored;	/* no. of pages currently stored */
 	atomic64_t lowratio_pages;
 #ifdef CONFIG_MIUI_ZRAM_MEMORY_TRACKING
