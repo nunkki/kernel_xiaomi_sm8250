@@ -3,13 +3,15 @@
 # Make sure you have zstd installed.
 
 export DEVICE="munch"
+#export TGTOKEN=bot_token
+#export CHAT_ID=chat_id
 
 start_time=$(date +%s)
 
-MAINPATH=/home/olzhas0986
+MAINPATH=/home/runner/work/kernel_xiaomi_sm8250/kernel_xiaomi_sm8250
 
 KERNEL_DIR=$MAINPATH
-KERNEL_PATH=$KERNEL_DIR/kernel
+KERNEL_PATH=$KERNEL_DIR/kernel_xiaomi_sm8250
 
 CLANG_DIR=$KERNEL_DIR/clang24
 
@@ -24,7 +26,7 @@ check_and_wget() {
         wget $repo
         tar --zstd -xvf neutron-clang-06092026.tar.zst
         rm -rf neutron-clang-06092026.tar.zst
-        cd ../kernel
+        cd ../kernel_xiaomi_sm8250
     fi
 }
 
@@ -34,31 +36,31 @@ PATH=$CLANG_DIR/bin:$PATH
 export PATH
 export ARCH=arm64
 
-PERF_DIR="$KERNEL_DIR/perf"
+AK3_DIR="$KERNEL_DIR/main"
 
-if [ ! -d "$PERF_DIR" ]; then
-    mkdir -p "$PERF_DIR"
+if [ ! -d "$AK3_DIR" ]; then
+    mkdir -p "$AK3_DIR"
     
-    if [ ! -d "$PERF_DIR/Anykernel" ]; then
-        git clone https://github.com/olzhas0986/Anykernel3.git "$PERF_DIR/Anykernel"
+    if [ ! -d "$AK3_DIR/Anykernel" ]; then
+        git clone https://github.com/nunkki/Anykernel3-Munch.git "$AK3_DIR/Anykernel"
         
-        mv "$PERF_DIR/Anykernel/"* "$PERF_DIR/"
+        mv "$AK3_DIR/Anykernel/"* "$AK3_DIR/"
         
-        rm -rf "$PERF_DIR/Anykernel"
+        rm -rf "$AK3_DIR/Anykernel"
     fi
 else
-    if [ -d "$PERF_DIR/.git" ]; then
-        rm -rf "$PERF_DIR/.git"
+    if [ -d "$AK3_DIR/.git" ]; then
+        rm -rf "$AK3_DIR/.git"
     fi
 fi
 
-export IMGPATH="$PERF_DIR/Image"
-export DTBPATH="$PERF_DIR/dtb"
-export DTBOPATH="$PERF_DIR/dtbo.img"
-export KBUILD_BUILD_USER="olzhas"
-export KBUILD_BUILD_HOST="debian"
+export IMGPATH="$AK3_DIR/Image"
+export DTBPATH="$AK3_DIR/dtb"
+export DTBOPATH="$AK3_DIR/dtbo.img"
+export KBUILD_BUILD_USER="action"
+export KBUILD_BUILD_HOST="github.com"
 
-PERF_BUILD_DATE=$(date '+%Y-%m-%d_%H-%M-%S')
+MORPHITE_BUILD_DATE=$(date '+%Y-%m-%d_%H-%M-%S')
 
 output_dir=out
 
@@ -93,8 +95,23 @@ cd "$KERNEL_PATH"
 if grep -q -E "Error 2" build.log; then
     cd "$KERNEL_PATH"
     echo "Error: Compilation failed"
+
+    curl -s -X POST https://api.telegram.org/bot$TGTOKEN/sendMessage \
+    -d chat_id="$CHAT_ID" \
+    -d text="Compilation error!"
+
+    curl -s -X POST "https://api.telegram.org/bot$TGTOKEN/sendDocument?chat_id=$CHAT_ID" \
+    -F document=@"./build.log"
 else
     echo "Total execution time: $elapsed_time second"
-    cd "$PERF_DIR"
-    7z a -mx9 LineageOS-perf-$DEVICE-$PERF_BUILD_DATE.zip * -x!*.zip
+    cd "$AK3_DIR"
+    7z a -mx9 Morphite+-AOSP-$DEVICE-$MORPHITE_BUILD_DATE.zip * -x!*.zip
+
+    curl -s -X POST https://api.telegram.org/bot$TGTOKEN/sendMessage \
+    -d chat_id="$CHAT_ID" \
+    -d text="Compilation completed successfully! Execution time: $elapsed_time seconds"
+
+    curl -s -X POST "https://api.telegram.org/bot$TGTOKEN/sendDocument?chat_id=$CHAT_ID" \
+    -F document=@"./Morphite+-AOSP-$DEVICE-$MORPHITE_BUILD_DATE.zip" \
+    -F caption="Morphite+ | branch: ${BRANCH}"
 fi
