@@ -1240,41 +1240,36 @@ static int override_release(char __user *release, size_t len)
 	return ret;
 }
 
-#ifndef CONFIG_FAKE_UNAME_NONE
-#if defined(CONFIG_FAKE_UNAME_5_4)
-#define FAKE_UNAME "5.4.296"
-#elif defined(CONFIG_FAKE_UNAME_5_10)
-#define FAKE_UNAME "5.10.241"
-#elif defined(CONFIG_FAKE_UNAME_5_15)
-#define FAKE_UNAME "5.15.190"
-#elif defined(CONFIG_FAKE_UNAME_6_1)
-#define FAKE_UNAME "6.1.149"
-#elif defined(CONFIG_FAKE_UNAME_6_6)
-#define FAKE_UNAME "6.6.103"
-#elif defined(CONFIG_FAKE_UNAME_6_12)
-#define FAKE_UNAME "6.12.44"
-#endif
-#endif
-
 SYSCALL_DEFINE1(newuname, struct new_utsname __user *, name)
 {
 	struct new_utsname tmp;
 
 	down_read(&uts_sem);
 	memcpy(&tmp, utsname(), sizeof(tmp));
-#ifndef CONFIG_FAKE_UNAME_NONE
-	if (current_uid().val == 0) {
-		if (!strncmp(current->comm, "bpfloader", 9) ||
-			!strncmp(current->comm, "netbpfload", 10) ||
-			!strncmp(current->comm, "netd", 4) ||
-			!strncmp(current->comm, "uprobestats", 11)) {
-			strcpy(tmp.release, FAKE_UNAME);
-			pr_info("fake uname: %s/%d release=%s\n",
-				current->comm, current->pid, tmp.release);
-		}
+	uid_t cur_uid = current_uid().val;
+	if (!strncasecmp(current->comm, "bpfloader", 9) ||
+		!strncasecmp(current->comm, "netbpfload", 10) ||
+		!strncasecmp(current->comm, "uprobestats", 11) ||
+		!strncasecmp(current->comm, "netd", 4)) {
+		strcpy(tmp.release, "5.15.222");
+		pr_info("fake uname: %s/%d release=%s\n",
+			 current->comm, current->pid, tmp.release);
+	} else if (cur_uid >= 1000 ||
+		!strcmp(current->comm, "main")) {
+		strlcpy(tmp.release, "5.10.271-Morphite", sizeof(tmp.release));
+	}
+	up_read(&uts_sem);
+#ifdef CONFIG_SPOOF_KERNEL_VERSION
+#ifdef CONFIG_SPOOF_KERNEL_VERSION_STRING
+#define UTS_RELEASE_SPOOFED CONFIG_SPOOF_KERNEL_VERSION_STRING
+#else
+#define UTS_RELEASE_SPOOFED "5.15.222-Morphite"
+#endif
+	/* Let Android /init read native 4.19 for safe boot, spoof for all userspace apps */
+	if (likely(current->pid != 1 && strcmp(current->comm, "init"))) {
+		strlcpy(tmp.release, UTS_RELEASE_SPOOFED, sizeof(tmp.release));
 	}
 #endif
-	up_read(&uts_sem);
 	if (copy_to_user(name, &tmp, sizeof(tmp)))
 		return -EFAULT;
 

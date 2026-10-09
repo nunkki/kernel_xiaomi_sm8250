@@ -69,37 +69,6 @@ config CC_CAN_LINK_STATIC
 	default $(success,$(srctree)/scripts/cc-can-link.sh $(CC) -static $(m64-flag)) if 64BIT
 	default $(success,$(srctree)/scripts/cc-can-link.sh $(CC) -static $(m32-flag))
 
-choice
-    prompt "Fake uname kernel version"
-    default FAKE_UNAME_NONE
-    help
-      Kernel side spoof for BPF.
-
-config FAKE_UNAME_NONE
-    bool "None"
-    help
-      Don't spoof uname version.
-
-config FAKE_UNAME_5_4
-    bool "5.4"
-
-config FAKE_UNAME_5_10
-    bool "5.10"
-
-config FAKE_UNAME_5_15
-    bool "5.15"
-
-config FAKE_UNAME_6_1
-	bool "6.1"
-
-config FAKE_UNAME_6_6
-	bool "6.6"
-
-config FAKE_UNAME_6_12
-	bool "6.12"
-
-endchoice
-
 config CC_HAS_ASM_GOTO
 	def_bool $(success,$(srctree)/scripts/gcc-goto.sh $(CC))
 
@@ -188,6 +157,23 @@ config LOCALVERSION_AUTO
 	    $ git rev-parse --verify HEAD
 
 	  which is done within the script "scripts/setlocalversion".)
+
+config SPOOF_KERNEL_VERSION
+	bool "Spoof reported kernel release version to Linux 5.xx (Android GKI)"
+	default y
+	help
+	  Spoof the kernel release string reported by uname() syscall,
+	  /proc/version, and /proc/sys/kernel/osrelease to modern Android
+	  GKI version (5.15.xx) while maintaining full 4.19 driver
+	  compatibility. Tricks root detectors, benchmarks, game engines,
+	  and Android Settings to recognize the kernel as Linux 5.xx.
+
+config SPOOF_KERNEL_VERSION_STRING
+	string "Spoofed kernel release string"
+	depends on SPOOF_KERNEL_VERSION
+	default "5.15.222-Morphite"
+	help
+	  The spoofed kernel release string to report.
 
 config BUILD_SALT
        string "Build ID Salt"
