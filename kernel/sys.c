@@ -1264,7 +1264,6 @@ extern void susfs_spoof_uname(struct new_utsname* tmp);
 SYSCALL_DEFINE1(newuname, struct new_utsname __user *, name)
 {
 	struct new_utsname tmp;
-	uid_t cur_uid = current_uid().val;
 
 	down_read(&uts_sem);
 	memcpy(&tmp, utsname(), sizeof(tmp));
@@ -1273,6 +1272,7 @@ SYSCALL_DEFINE1(newuname, struct new_utsname __user *, name)
 		susfs_spoof_uname(&tmp);
 #endif
 #ifndef CONFIG_FAKE_UNAME_NONE
+	uid_t cur_uid = current_uid().val;
 	if (cur_uid == 0 &&
 		(!strncmp(current->comm, "bpfloader", 9) ||
 		!strncmp(current->comm, "netbpfload", 10) ||
